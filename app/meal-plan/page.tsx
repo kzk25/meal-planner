@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
   formatCurrency, getWeekStartDate, formatWeekStartDate, addDays,
@@ -9,7 +8,7 @@ import {
   type DayName, type MealType,
 } from "@/lib/utils";
 import type { MealPlan, Dish } from "@/lib/types";
-import { ChevronLeft, ChevronRight, Heart, RefreshCw, Edit2, Plus, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Heart, RefreshCw, Plus, Loader2, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { DishSelectModal } from "@/components/meal-plan/dish-select-modal";
 
@@ -219,12 +218,3 @@ export default function MealPlanPage() {
   );
 }
 
-// Missing import fix
-function ShoppingCart(props: React.SVGProps<SVGSVGElement> & { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
-      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
-    </svg>
-  );
-}
