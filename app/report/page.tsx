@@ -2,22 +2,26 @@
 export const runtime = 'edge';
 
 import { useEffect, useState } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-} from "recharts";
+import dynamic from "next/dynamic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { TrendingUp, Loader2 } from "lucide-react";
+
+const ChartLoader = () => (
+  <div className="flex items-center justify-center py-8">
+    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+  </div>
+);
+
+const WeekBarChart = dynamic(
+  () => import("./ReportCharts").then((m) => m.WeekBarChart),
+  { ssr: false, loading: ChartLoader }
+);
+
+const CategoryPieChart = dynamic(
+  () => import("./ReportCharts").then((m) => m.CategoryPieChart),
+  { ssr: false, loading: ChartLoader }
+);
 
 interface WeekData {
   week_start: string;
@@ -51,19 +55,6 @@ const WEEK_OPTIONS = [
   { label: "12週", value: 12 },
 ] as const;
 
-// Pie chart color palette — warm, distinct
-const PIE_COLORS = [
-  "#2E7D32", // deep green
-  "#388E3C", // medium green
-  "#F57F17", // amber
-  "#E65100", // deep orange
-  "#1565C0", // blue
-  "#6A1B9A", // purple
-  "#00695C", // teal
-  "#78909C", // slate
-];
-
-// Badge colours per category (fallback to gray)
 const CATEGORY_BADGE: Record<string, string> = {
   和食: "bg-orange-100 text-orange-700",
   洋食: "bg-blue-100 text-blue-700",
@@ -76,31 +67,6 @@ const CATEGORY_BADGE: Record<string, string> = {
 
 function categoryBadge(cat: string) {
   return CATEGORY_BADGE[cat] ?? "bg-gray-100 text-gray-600";
-}
-
-// Custom tooltip for the BarChart
-function WeekTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: { name: string; value: number; color: string }[];
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2 text-xs space-y-1">
-      <p className="font-semibold text-gray-700 mb-1">{label}</p>
-      {payload.map((p) => (
-        <p key={p.name} style={{ color: p.color }}>
-          {p.name === "カロリー"
-            ? `${p.value.toLocaleString()} kcal`
-            : formatCurrency(p.value)}
-        </p>
-      ))}
-    </div>
-  );
 }
 
 export default function ReportPage() {
@@ -128,8 +94,8 @@ export default function ReportPage() {
       });
   }, [selectedWeeks]);
 
-  const hasCalories = data?.weeks.some((w) => w.total_calories > 0);
-  const hasCost = data?.weeks.some((w) => w.total_cost > 0);
+  const hasCalories = data?.weeks.some((w) => w.total_calories > 0) ?? false;
+  const hasCost = data?.weeks.some((w) => w.total_cost > 0) ?? false;
   const hasPie = (data?.category_breakdown.length ?? 0) > 0;
 
   return (
@@ -184,69 +150,11 @@ export default function ReportPage() {
                   この期間のデータがありません
                 </p>
               ) : (
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart
-                    data={data.weeks}
-                    margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
-                    barGap={4}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fontSize: 11, fill: "#6B7280" }}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    {/* Left axis: calories */}
-                    <YAxis
-                      yAxisId="calories"
-                      orientation="left"
-                      tick={{ fontSize: 10, fill: "#6B7280" }}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(v: number) =>
-                        v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`
-                      }
-                      width={36}
-                    />
-                    {/* Right axis: cost */}
-                    <YAxis
-                      yAxisId="cost"
-                      orientation="right"
-                      tick={{ fontSize: 10, fill: "#6B7280" }}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(v: number) => `¥${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
-                      width={44}
-                    />
-                    <Tooltip content={<WeekTooltip />} />
-                    <Legend
-                      iconType="circle"
-                      iconSize={8}
-                      wrapperStyle={{ fontSize: 11 }}
-                    />
-                    {hasCalories && (
-                      <Bar
-                        yAxisId="calories"
-                        dataKey="total_calories"
-                        name="カロリー"
-                        fill="#2E7D32"
-                        radius={[3, 3, 0, 0]}
-                        maxBarSize={32}
-                      />
-                    )}
-                    {hasCost && (
-                      <Bar
-                        yAxisId="cost"
-                        dataKey="total_cost"
-                        name="食費"
-                        fill="#F59E0B"
-                        radius={[3, 3, 0, 0]}
-                        maxBarSize={32}
-                      />
-                    )}
-                  </BarChart>
-                </ResponsiveContainer>
+                <WeekBarChart
+                  weeks={data.weeks}
+                  hasCalories={hasCalories}
+                  hasCost={hasCost}
+                />
               )}
             </CardContent>
           </Card>
@@ -323,39 +231,9 @@ export default function ReportPage() {
                   この期間のデータがありません
                 </p>
               ) : (
-                <div className="h-56">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={data.category_breakdown}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        label={({ name, percent }) =>
-                          `${name} ${Math.round((percent ?? 0) * 100)}%`
-                        }
-                        labelLine={false}
-                      >
-                        {data.category_breakdown.map((entry, index) => (
-                          <Cell
-                            key={entry.name}
-                            fill={PIE_COLORS[index % PIE_COLORS.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value) => [`${value}回`, "回数"]}
-                      />
-                      <Legend
-                        iconType="circle"
-                        iconSize={8}
-                        wrapperStyle={{ fontSize: 11 }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                <CategoryPieChart
+                  categoryBreakdown={data.category_breakdown}
+                />
               )}
             </CardContent>
           </Card>
@@ -377,7 +255,6 @@ export default function ReportPage() {
                       key={dish.name}
                       className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0"
                     >
-                      {/* Rank */}
                       <span
                         className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
                           index === 0
@@ -391,13 +268,9 @@ export default function ReportPage() {
                       >
                         {index + 1}
                       </span>
-
-                      {/* Name */}
                       <span className="flex-1 text-sm font-medium text-gray-800 truncate">
                         {dish.name}
                       </span>
-
-                      {/* Category badge */}
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${categoryBadge(
                           dish.category
@@ -405,8 +278,6 @@ export default function ReportPage() {
                       >
                         {dish.category}
                       </span>
-
-                      {/* Count badge */}
                       <span className="flex-shrink-0 text-xs font-semibold text-primary bg-green-50 px-2 py-0.5 rounded-full">
                         {dish.count}回
                       </span>

@@ -1,10 +1,19 @@
 "use client";
 export const runtime = 'edge';
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { getWeekStartDate, formatWeekStartDate } from "@/lib/utils";
 import { BarChart2, Loader2 } from "lucide-react";
+
+const NutritionCharts = dynamic(() => import("./NutritionCharts"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-48 flex items-center justify-center">
+      <Loader2 className="w-5 h-5 animate-spin text-primary" />
+    </div>
+  ),
+});
 
 const PFC_COLORS = ["#2E7D32", "#FF8F00", "#81C784"];
 
@@ -91,18 +100,7 @@ export default function NutritionPage() {
             <Card>
               <CardHeader><CardTitle className="text-sm">PFCバランス</CardTitle></CardHeader>
               <CardContent>
-                <div className="h-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={pfcData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${Math.round((percent ?? 0) * 100)}%`}>
-                        {pfcData.map((entry, index) => (
-                          <Cell key={index} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                <NutritionCharts pfcData={pfcData} />
               </CardContent>
             </Card>
           )}
