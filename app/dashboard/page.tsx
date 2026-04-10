@@ -30,21 +30,31 @@ export default function DashboardPage() {
   const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
   const [streak, setStreak] = useState<StreakStats | null>(null);
   const [nutrition, setNutrition] = useState<{ total_calories: number; avg_calories: number } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [loadingStreak, setLoadingStreak] = useState(true);
+  const [loadingNutrition, setLoadingNutrition] = useState(true);
+
+  // Keep a single loading flag for backward-compat with skeleton
+  const loading = loadingPlans && loadingStreak && loadingNutrition;
 
   const weekStart = formatWeekStartDate(getWeekStartDate());
 
   useEffect(() => {
-    Promise.all([
-      fetch(`/api/meal-plan?week=${weekStart}`).then((r) => r.json()),
-      fetch("/api/streak").then((r) => r.json()),
-      fetch(`/api/nutrition?week=${weekStart}`).then((r) => r.json()),
-    ]).then(([plans, streakData, nutritionData]) => {
-      setMealPlans(plans ?? []);
-      setStreak(streakData);
-      setNutrition(nutritionData);
-      setLoading(false);
-    });
+    // Fetch all three independently so each section renders as soon as its data arrives
+    fetch(`/api/meal-plan?week=${weekStart}`)
+      .then((r) => r.json())
+      .then((d) => { setMealPlans(d ?? []); setLoadingPlans(false); })
+      .catch(() => setLoadingPlans(false));
+
+    fetch("/api/streak")
+      .then((r) => r.json())
+      .then((d) => { setStreak(d); setLoadingStreak(false); })
+      .catch(() => setLoadingStreak(false));
+
+    fetch(`/api/nutrition?week=${weekStart}`)
+      .then((r) => r.json())
+      .then((d) => { setNutrition(d); setLoadingNutrition(false); })
+      .catch(() => setLoadingNutrition(false));
   }, [weekStart]);
 
   const currentStreak = streak?.current_streak ?? 0;
@@ -70,7 +80,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Streak */}
-      {currentStreak > 0 && (
+      {!loadingStreak && currentStreak > 0 && (
         <div className="rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 p-4 text-white shadow">
           <div className="flex items-center gap-3">
             <Flame className="w-8 h-8" />
@@ -89,25 +99,25 @@ export default function DashboardPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="text-xs text-gray-500 mb-1">今週の献立</div>
-            <div className="text-2xl font-bold text-primary">{loading ? "…" : totalMealsPlanned}<span className="text-sm font-normal text-gray-500">/21食</span></div>
+            <div className="text-2xl font-bold text-primary">{loadingPlans ? "…" : totalMealsPlanned}<span className="text-sm font-normal text-gray-500">/21食</span></div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <div className="text-xs text-gray-500 mb-1">週間カロリー</div>
-            <div className="text-2xl font-bold text-gray-800">{loading ? "…" : (nutrition?.total_calories ?? 0).toLocaleString()}<span className="text-sm font-normal text-gray-500">kcal</span></div>
+            <div className="text-2xl font-bold text-gray-800">{loadingNutrition ? "…" : (nutrition?.total_calories ?? 0).toLocaleString()}<span className="text-sm font-normal text-gray-500">kcal</span></div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <div className="text-xs text-gray-500 mb-1">週間食費（概算）</div>
-            <div className="text-2xl font-bold text-gray-800">{loading ? "…" : formatCurrency(totalEstimatedCost)}</div>
+            <div className="text-2xl font-bold text-gray-800">{loadingPlans ? "…" : formatCurrency(totalEstimatedCost)}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <div className="text-xs text-gray-500 mb-1">連続記録</div>
-            <div className="text-2xl font-bold text-gray-800">{loading ? "…" : streak?.longest_streak ?? 0}<span className="text-sm font-normal text-gray-500">日最長</span></div>
+            <div className="text-2xl font-bold text-gray-800">{loadingStreak ? "…" : streak?.longest_streak ?? 0}<span className="text-sm font-normal text-gray-500">日最長</span></div>
           </CardContent>
         </Card>
       </div>
@@ -121,7 +131,7 @@ export default function DashboardPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {loadingPlans ? (
             <div className="space-y-2">
               {[...Array(3)].map((_, i) => <div key={i} className="skeleton h-8 w-full" />)}
             </div>

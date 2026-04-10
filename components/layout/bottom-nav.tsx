@@ -6,7 +6,7 @@ import {
   CalendarDays,
   ShoppingCart,
   Calendar,
-  MoreHorizontal,
+  Menu,
   Refrigerator,
   BarChart2,
   Heart,
@@ -52,7 +52,7 @@ export function BottomNav() {
       {/* Drawer overlay */}
       {drawerOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setDrawerOpen(false)}
         />
       )}
@@ -60,23 +60,30 @@ export function BottomNav() {
       {/* More drawer */}
       <div
         className={cn(
-          "fixed bottom-16 left-0 right-0 bg-white rounded-t-2xl shadow-2xl z-50 transition-transform duration-300 lg:hidden pb-safe",
+          "fixed bottom-16 left-0 right-0 bg-white rounded-t-2xl shadow-2xl z-50 transition-transform duration-300 ease-out lg:hidden",
           drawerOpen ? "translate-y-0" : "translate-y-full"
         )}
       >
-        <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-gray-100">
+        {/* Handle bar */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 bg-gray-300 rounded-full" />
+        </div>
+
+        <div className="flex items-center justify-between px-4 pt-2 pb-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <ChefHat className="w-5 h-5 text-primary" />
             <span className="font-semibold text-gray-800">メニュー</span>
           </div>
           <button
             onClick={() => setDrawerOpen(false)}
-            className="p-2 rounded-full hover:bg-gray-100"
+            className="p-2 rounded-full hover:bg-gray-100 active:bg-gray-200"
+            aria-label="閉じる"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
-        <div className="grid grid-cols-4 gap-1 p-3">
+
+        <div className="grid grid-cols-4 gap-1 p-3 pb-6">
           {moreItems.map(({ href, icon: Icon, label }) => {
             const active = pathname === href || pathname.startsWith(href + "/");
             return (
@@ -85,14 +92,14 @@ export function BottomNav() {
                 href={href}
                 onClick={() => setDrawerOpen(false)}
                 className={cn(
-                  "flex flex-col items-center gap-1 p-3 rounded-xl text-xs transition-colors",
+                  "flex flex-col items-center gap-1.5 p-3 rounded-xl text-xs transition-colors active:scale-95",
                   active
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "text-gray-600 hover:bg-gray-50"
+                    ? "bg-primary/10 text-primary font-semibold"
+                    : "text-gray-600 hover:bg-gray-50 active:bg-gray-100"
                 )}
               >
-                <Icon className="w-5 h-5" />
-                {label}
+                <Icon className={cn("w-5 h-5", active && "stroke-[2.5px]")} />
+                <span className="text-center leading-tight">{label}</span>
               </Link>
             );
           })}
@@ -109,7 +116,7 @@ export function BottomNav() {
                 key={href}
                 href={href}
                 className={cn(
-                  "flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-xs transition-colors touch-manipulation",
+                  "flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-xs transition-colors touch-manipulation active:opacity-70",
                   active ? "text-primary" : "text-gray-500"
                 )}
               >
@@ -118,15 +125,29 @@ export function BottomNav() {
               </Link>
             );
           })}
+
+          {/* Menu button — shows count badge when on a "more" page */}
           <button
             className={cn(
-              "flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-xs transition-colors touch-manipulation",
+              "flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-xs transition-colors touch-manipulation active:opacity-70 relative",
               isMoreActive || drawerOpen ? "text-primary" : "text-gray-500"
             )}
             onClick={() => setDrawerOpen((v) => !v)}
+            aria-label="メニューを開く"
+            aria-expanded={drawerOpen}
           >
-            <MoreHorizontal className={cn("w-5 h-5", (isMoreActive || drawerOpen) && "stroke-[2.5px]")} />
-            その他
+            <div className="relative">
+              {drawerOpen ? (
+                <X className="w-5 h-5 stroke-[2.5px]" />
+              ) : (
+                <Menu className={cn("w-5 h-5", isMoreActive && "stroke-[2.5px]")} />
+              )}
+              {/* Active indicator dot when on a "more" page and drawer is closed */}
+              {isMoreActive && !drawerOpen && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />
+              )}
+            </div>
+            <span>{drawerOpen ? "閉じる" : "メニュー"}</span>
           </button>
         </div>
       </nav>
