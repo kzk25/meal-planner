@@ -12,9 +12,12 @@ export async function GET(request: NextRequest) {
   if (date) {
     query = query.eq("recorded_date", date);
   } else if (month) {
+    // Calculate the actual last day of the month
+    const [y, m] = month.split("-").map(Number);
+    const lastDay = new Date(y, m, 0).getDate(); // day 0 of next month = last day of this month
     query = query
       .gte("recorded_date", `${month}-01`)
-      .lte("recorded_date", `${month}-31`);
+      .lte("recorded_date", `${month}-${String(lastDay).padStart(2, "0")}`);
   }
 
   const { data, error } = await query.order("recorded_date", { ascending: false });

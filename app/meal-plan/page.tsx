@@ -11,12 +11,14 @@ import type { MealPlan, Dish } from "@/lib/types";
 import { ChevronLeft, ChevronRight, Heart, RefreshCw, Plus, Loader2, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { DishSelectModal } from "@/components/meal-plan/dish-select-modal";
+import { RecipeModal } from "@/components/meal-plan/recipe-modal";
 
 export default function MealPlanPage() {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => getWeekStartDate());
   const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCell, setSelectedCell] = useState<{ day: DayName; mealType: MealType } | null>(null);
+  const [recipeModalDish, setRecipeModalDish] = useState<number | null>(null);
 
   const weekStartStr = formatWeekStartDate(currentWeekStart);
 
@@ -139,7 +141,12 @@ export default function MealPlanPage() {
                         {plan?.is_prepcook && (
                           <span className="text-[9px] bg-amber-100 text-amber-700 rounded px-1 mb-0.5 inline-block">🍱作り置き</span>
                         )}
-                        <div className="text-xs font-medium text-gray-800 leading-tight line-clamp-2 mb-1">{dish.name}</div>
+                        <button
+                          onClick={() => setRecipeModalDish(dish.id)}
+                          className="text-xs font-medium text-gray-800 leading-tight line-clamp-2 mb-1 text-left hover:text-primary hover:underline w-full"
+                        >
+                          {dish.name}
+                        </button>
                         {dish.category && (
                           <span className={`text-[9px] rounded px-1 ${CATEGORY_COLORS[dish.category] ?? CATEGORY_COLORS["その他"]}`}>
                             {dish.category}
@@ -213,6 +220,11 @@ export default function MealPlanPage() {
           onClose={() => setSelectedCell(null)}
           label={`${DAY_LABELS[selectedCell.day]}曜 ${MEAL_LABELS[selectedCell.mealType]}`}
         />
+      )}
+
+      {/* Recipe detail modal */}
+      {recipeModalDish && (
+        <RecipeModal dishId={recipeModalDish} onClose={() => setRecipeModalDish(null)} />
       )}
     </div>
   );

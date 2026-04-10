@@ -44,11 +44,19 @@ async function main() {
   // Load user settings
   const { data: profile } = await supabase.from("user_profile").select("*").eq("id", 1).single();
   console.log("\n【ユーザー設定】");
-  console.log(`- 人数: ${profile?.default_servings ?? 1}人`);
+  const servings = profile?.default_servings ?? 4;
+  console.log(`- 夜ご飯の分量: ${servings}人前（2人で食べて残りを翌日のお弁当に）`);
+  console.log(`- 朝食: ベリーヨーグルトオートミール（固定）`);
+  console.log(`- 昼食: 前日夕食の残り（お弁当）※月曜のみ別途提案`);
+
   console.log(`- カテゴリ: ${JSON.stringify(profile?.preferred_categories ?? ["和食", "洋食", "中華"])}`);
   console.log(`- 副菜: ${profile?.include_side_dish ? "あり" : "なし"}`);
   console.log(`- 汁物: ${profile?.include_soup ? "あり" : "なし"}`);
   console.log(`- 1食目標金額: ¥${profile?.meal_budget_per_meal ?? 500}`);
+  console.log(`\n【夜ご飯のルール（必須）】`);
+  console.log(`- 野菜を必ず含めること（葉物・根菜・きのこ類など何でも可）`);
+  console.log(`- 調理時間は30分以内のものを選ぶこと`);
+  console.log(`- 月曜昼食のみ単品で提案（他の昼食は前日夕食の残りで自動設定）`);
 
   // Load past 4 weeks of meal history
   const fourWeeksAgo = new Date();
@@ -59,7 +67,12 @@ async function main() {
     .gte("week_start_date", fourWeeksAgo.toISOString().split("T")[0]);
 
   const recentDishes = new Set(
-    (history ?? []).map((h: { dish?: { name?: string } | null }) => h.dish?.name).filter(Boolean)
+    (history ?? []).map((h: { dish?: { name?: string } | { name?: string }[] | null }) => {
+      const dish = h.dish;
+      if (!dish) return undefined;
+      if (Array.isArray(dish)) return dish[0]?.name;
+      return (dish as { name?: string }).name;
+    }).filter(Boolean)
   );
   console.log(`\n【最近4週間の献立（重複回避対象）】`);
   console.log([...recentDishes].join(", ") || "（なし）");
@@ -98,8 +111,31 @@ await writeMealPlan(weekStartDate, [
   console.log("または、以下の writeToDB 関数を直接呼び出してください。");
 }
 
+// デフォルト朝食（毎週固定）
+const DEFAULT_BREAKFAST = "ベリーヨーグルトオートミール";
+const DAYS_OF_WEEK = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+
+async function setDefaultBreakfast(weekStartDate: string) {
+  const { data: dish } = await supabase
+    .from("dishes")
+    .select("id")
+    .eq("name", DEFAULT_BREAKFAST)
+    .single();
+  if (!dish) return;
+  for (const day of DAYS_OF_WEEK) {
+    await supabase.from("meal_plans").upsert(
+      { week_start_date: weekStartDate, day_of_week: day, meal_type: "breakfast", dish_id: dish.id, servings: 1 },
+      { onConflict: "week_start_date,day_of_week,meal_type" }
+    );
+  }
+  console.log(`✓ 朝食をデフォルト（${DEFAULT_BREAKFAST}）で設定しました`);
+}
+
 export async function writeToDB(weekStartDate: string, mealPlanData: MealPlanInput[]) {
   console.log(`\n${weekStartDate} の献立をDBに書き込みます...`);
+
+  // 1. デフォルト朝食を全日設定
+  await setDefaultBreakfast(weekStartDate);
 
   for (const dayData of mealPlanData) {
     for (const mealType of ["breakfast", "lunch", "dinner"] as const) {
@@ -156,6 +192,33 @@ export async function writeToDB(weekStartDate: string, mealPlanData: MealPlanInp
 
       console.log(`✓ ${dayData.day} ${mealType}: ${meal.name}`);
     }
+  }
+
+  // 2. 昼食を「前日の夕食の残り（お弁当）」に設定
+  //    月曜昼のみ前週データが必要なためスキップ
+  const LUNCH_FROM_PREV: { lunch: string; dinner: string }[] = [
+    { lunch: "tuesday",   dinner: "monday"    },
+    { lunch: "wednesday", dinner: "tuesday"   },
+    { lunch: "thursday",  dinner: "wednesday" },
+    { lunch: "friday",    dinner: "thursday"  },
+    { lunch: "saturday",  dinner: "friday"    },
+    { lunch: "sunday",    dinner: "saturday"  },
+  ];
+  // 今週書き込んだ夕食のdish_idを取得
+  const { data: dinners } = await supabase
+    .from("meal_plans")
+    .select("day_of_week, dish_id")
+    .eq("week_start_date", weekStartDate)
+    .eq("meal_type", "dinner");
+  const dinnerMap = new Map((dinners ?? []).map((d: { day_of_week: string; dish_id: number }) => [d.day_of_week, d.dish_id]));
+  for (const { lunch, dinner } of LUNCH_FROM_PREV) {
+    const dish_id = dinnerMap.get(dinner);
+    if (!dish_id) continue;
+    await supabase.from("meal_plans").upsert(
+      { week_start_date: weekStartDate, day_of_week: lunch, meal_type: "lunch", dish_id, servings: 1 },
+      { onConflict: "week_start_date,day_of_week,meal_type" }
+    );
+    console.log(`✓ ${lunch} 昼食 → ${dinner}の残りに設定`);
   }
 
   // Generate shopping list
