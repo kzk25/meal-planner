@@ -1,4 +1,3 @@
-export const runtime = 'edge';
 import { redirect } from "next/navigation";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import Image from "next/image";
