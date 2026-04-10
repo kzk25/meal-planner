@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 import { createServerClient } from "@/lib/supabase-server";
 import { NextRequest } from "next/server";
 import { getWeekStartDate, formatWeekStartDate, addDays } from "@/lib/utils";
