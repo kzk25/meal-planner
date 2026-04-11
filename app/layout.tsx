@@ -31,7 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen antialiased">
         <div className="flex min-h-screen">
           <Sidebar />
-          <main className="flex-1 pb-20 lg:pb-0 min-w-0">
+          <main className="flex-1 pb-24 lg:pb-0 min-w-0">
             {children}
           </main>
         </div>
