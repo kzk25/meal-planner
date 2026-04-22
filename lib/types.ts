@@ -13,6 +13,8 @@ export interface Dish {
   cooking_time_minutes: number | null;
   is_favorite: boolean;
   source_url: string | null;
+  source_site: string | null;
+  recipe_url: string | null;
   created_at: string;
 }
 

@@ -12,8 +12,20 @@ interface RecipeModalProps {
 type DishWithIngredients = Dish & {
   ingredients: Ingredient[];
   cooking_steps?: string[];
-  recipe_url?: string;
 };
+
+const SITE_LABELS: Record<string, string> = {
+  kurashiru: "クラシル",
+  cookpad: "クックパッド",
+  delish_kitchen: "デリッシュキッチン",
+  nhk: "NHKきょうの料理",
+  marucome: "マルコメ",
+};
+
+function getSiteLabel(site: string | null | undefined): string {
+  if (!site) return "レシピサイト";
+  return SITE_LABELS[site] ?? "レシピサイト";
+}
 
 type Tab = "recipe" | "ingredients" | "nutrition";
 
@@ -122,21 +134,34 @@ export function RecipeModal({ dishId, onClose }: RecipeModalProps) {
               {/* ── 作り方タブ ── */}
               {activeTab === "recipe" && (
                 <div className="space-y-3">
+                  {/* 参照元サイトリンク（recipe_url or source_url） */}
+                  {(() => {
+                    const url = dish.recipe_url ?? dish.source_url;
+                    const label = getSiteLabel(dish.source_site);
+                    if (!url) return null;
+                    return (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 px-4 py-3 bg-orange-50 border border-orange-200 rounded-xl hover:bg-orange-100 transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-[#FF6B35] flex items-center justify-center shrink-0">
+                          <ExternalLink className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-800">{label}でレシピを確認する</p>
+                          <p className="text-xs text-gray-400 truncate">{url}</p>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-orange-400 shrink-0" />
+                      </a>
+                    );
+                  })()}
+
                   {(!dish.cooking_steps || dish.cooking_steps.length === 0) ? (
-                    <div className="text-center py-10 text-gray-400">
+                    <div className="text-center py-8 text-gray-400">
                       <ChefHat className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                      <p className="text-sm mb-4">詳しい手順はクラシルで確認できます</p>
-                      {dish.recipe_url && (
-                        <a
-                          href={dish.recipe_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#FF6B35] text-white text-sm font-bold rounded-full hover:bg-[#e55a25] transition-colors shadow-sm"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          クラシルでレシピを見る
-                        </a>
-                      )}
+                      <p className="text-sm">参考サイトで詳しい手順を確認してください</p>
                     </div>
                   ) : (
                     <>
@@ -177,19 +202,6 @@ export function RecipeModal({ dishId, onClose }: RecipeModalProps) {
                       <div className="mt-2 p-3 bg-green-50 border border-green-100 rounded-xl text-center">
                         <p className="text-sm text-green-700 font-medium">🍽 完成！白米と一緒にどうぞ</p>
                       </div>
-
-                      {/* クラシルリンク */}
-                      {dish.recipe_url && (
-                        <a
-                          href={dish.recipe_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-3 flex items-center justify-center gap-2 px-4 py-2.5 border border-[#FF6B35]/30 text-[#FF6B35] text-sm font-medium rounded-xl hover:bg-[#FF6B35]/5 transition-colors"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          クラシルで詳しいレシピを確認する
-                        </a>
-                      )}
                     </>
                   )}
                 </div>
