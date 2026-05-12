@@ -4,6 +4,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { Toaster } from "sonner";
+import { PWARegister } from "@/components/pwa-register";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 
@@ -15,6 +16,13 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: "献立",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon-180.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
@@ -37,6 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
         <BottomNav />
         <Toaster position="top-center" richColors />
+        <PWARegister />
       </body>
     </html>
   );
